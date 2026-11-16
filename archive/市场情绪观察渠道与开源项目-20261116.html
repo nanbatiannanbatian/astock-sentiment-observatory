@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股市场情绪观察：渠道、网站与开源项目全景</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f7f8fa; --card:#ffffff; --ink:#1f2329; --sub:#5b6472; --line:#e3e6ec;
+    --red:#d83b30; --green:#1f9c55; --amber:#c8811a; --blue:#2f6fbd; --soft:#f1f4f9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.7;padding:32px 18px 60px;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  h1{font-size:28px;letter-spacing:.5px;margin-bottom:6px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:22px;}
+  h2{font-size:20px;margin:34px 0 14px;padding-left:11px;border-left:4px solid var(--blue);}
+  h3{font-size:16px;margin:18px 0 10px;color:#2b3240;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,30,50,.04);}
+  .tldr{background:linear-gradient(135deg,#fff 0%,#f4f8ff 100%);border:1px solid #d7e3f5;}
+  .tldr ul{list-style:none;}
+  .tldr li{padding:9px 0 9px 30px;position:relative;border-bottom:1px dashed var(--line);}
+  .tldr li:last-child{border-bottom:none;}
+  .tldr li:before{content:"◈";color:var(--blue);position:absolute;left:4px;top:9px;}
+  b,.em{color:var(--blue);}
+  .warn{color:var(--red);font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;}
+  th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);font-weight:600;color:#2b3240;white-space:nowrap;}
+  tr:nth-child(even) td{background:#fbfcfe;}
+  a{color:var(--blue);text-decoration:none;border-bottom:1px dotted #9db9dd;}
+  a:hover{border-bottom-style:solid;}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;margin-right:4px;white-space:nowrap;}
+  .t-red{background:#fdeceb;color:var(--red);} .t-green{background:#e8f6ee;color:var(--green);}
+  .t-amber{background:#fdf3e2;color:var(--amber);} .t-blue{background:#eaf2fc;color:var(--blue);}
+  .t-gray{background:#eef0f3;color:#64707f;}
+  .chartbox{height:340px;width:100%;}
+  .note{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6;}
+  .layer{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .lbox{flex:1;min-width:210px;border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff;}
+  .lbox .n{font-size:12px;color:#fff;background:var(--blue);border-radius:5px;padding:1px 8px;display:inline-block;margin-bottom:7px;}
+  .lbox h4{font-size:14.5px;margin-bottom:5px;}
+  .lbox p{font-size:12.5px;color:var(--sub);}
+  .disc{margin-top:30px;background:#fff8f1;border:1px solid #f0d9bd;border-radius:9px;padding:14px 18px;font-size:12.5px;color:#6b532e;}
+  .src{font-size:11.5px;color:#8a93a0;margin-top:6px;}
+  .rec li{margin:7px 0 7px 20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>A股市场情绪观察：渠道、网站与开源项目全景</h1>
+  <div class="meta">整理时间：2026-11-16（周一）· 面向"看整体市场悲观/乐观情绪"的实操需求 · 数据来源见文末</div>
+
+  <!-- TL;DR -->
+  <div class="card tldr">
+    <h3 style="margin-top:0">先给结论（TL;DR）</h3>
+    <ul>
+      <li><b>A股没有官方"情绪指数"。</b>所有读数都是"用可观测交易行为反推心理状态"——涨跌家数、涨跌停、两融余额、期权隐含波动率、股吧发帖等，各家自行加权成 0–100 分。</li>
+      <li><span class="warn">跨站数字不可比，同一站点看历史分位。</span>同一天不同站点能从"极度恐慌 10.4"到"中性 45.1"，差异来自成分与窗口，不是谁算错。下图即为实证。</li>
+      <li><b>短线情绪 ≠ 中长线情绪。</b>涨停家数/炸板率/连板高度是短线赚钱效应；两融余额/期权IV/股债利差/破净率才是中长线风险偏好。混用会误判。</li>
+      <li><b>情绪指标是"预警器"不是"导航仪"。</b>极端读数只说明历史位置，不预测涨跌。大波浪自测：恐贪五档与之后20日上证涨跌差异统计上不显著（最小 p=0.196）。</li>
+    </ul>
+  </div>
+
+  <!-- 分歧图 -->
+  <h2>一、为什么不能只看一个数字：同一天的读数分歧</h2>
+  <div class="card">
+    <div id="diverge" class="chartbox"></div>
+    <div class="note">四家第三方站点在相近数据日（约 2026-11-13，非实时）给出的 A 股恐贪读数：百分位 10.42、大波浪 20.6、希氏 35、qjr1997 45.1（导数 −7.4）。同一市场，从"极度恐慌"到"中性"并存——<b>决定差异的是成分与口径，而非对错</b>。来源：各站点官网，详见文末。</div>
+  </div>
+
+  <!-- 渠道地图 -->
+  <h2>二、情绪渠道地图：按数据"硬度"从硬到软分四层</h2>
+  <div class="layer">
+    <div class="lbox"><span class="n">第 1 层 · 最硬</span><h4>交易所 / 官方原始数据</h4><p>两融余额、龙虎榜、股指期货升贴水、50ETF期权隐含波动率（中国波指）、中国结算新增开户数。第三方恐贪指数的底层输入八成来自这里，可复核。</p></div>
+    <div class="lbox"><span class="n">第 2 层</span><h4>券商 / 行情终端</h4><p>同花顺市场情绪面板、东财"情绪宝"、Wind投资者情绪指数数据库、支付宝市场情绪。散户日常入口，方便但注意口径（见下）。</p></div>
+    <div class="lbox"><span class="n">第 3 层</span><h4>第三方情绪站点</h4><p>各类"恐贪指数/牛熊指数"，免费、可读、带历史分位——本报告的清单主体。适合每天看一眼与做历史对照。</p></div>
+    <div class="lbox"><span class="n">第 4 层 · 最软</span><h4>社交 / 舆情语料</h4><p>东财股吧、雪球、淘股吧、微博/抖音/小红书、百度指数。散户情绪的原始语料，噪音大但最贴近"人心"，是文本情绪因子的来源。</p></div>
+  </div>
+  <div class="card" style="padding:12px 18px">
+    <p style="font-size:13px"><span class="warn">避坑：</span>同花顺 <b>883404"情绪指数"本质是一只题材股价格指数</b>（近5日有涨跌停的投机股等权合成），只反映短线炒作热度，<b>不等于全市场情绪</b>；880005 才是涨跌家数。这是最容易被误读的一点。</p>
+  </div>
+
+  <!-- 网站清单 -->
+  <h2>三、可直接用的情绪网站清单</h2>
+  <div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <tr><th>站点</th><th>核心指标</th><th>口径特点（关键差异）</th><th>入口</th></tr>
+    <tr><td><b>百分位</b></td><td>恐惧贪婪指数、短期情绪、估值温度</td><td>主指数＝短期情绪50%＋五宽基价格压力50%；短期情绪由波动率/相对换手/两融/宽度/RSI/涨跌停比六项合成。历史自2016年。</td><td><a href="https://baifenwei.com/indicator/fear-greed/" target="_blank">baifenwei.com ↗</a></td></tr>
+    <tr><td><b>大波浪数据</b></td><td>牛熊指数、恐贪指数、股债利差、拥挤度、破净率、两融占比</td><td>恐贪六成分等权（波动率/相对换手/两融动量/宽度/上证RSI14/涨跌停比），各取近10年滚动百分位后平均。附口径说明与检验，最透明之一。</td><td><a href="https://www.yyqyx.com/indicators" target="_blank">yyqyx.com ↗</a></td></tr>
+    <tr><td><b>乐咕乐股</b></td><td>恐慌&贪心指标（全部A股）</td><td>用"连续N日下跌板块占比"与"连涨板块占比"度量，逻辑最朴素，与其他站点差异最大。历史上恐慌冲高回落常对应阶段底。</td><td><a href="https://legulegu.com/stockdata/market-style?indexCode=1" target="_blank">legulegu.com ↗</a></td></tr>
+    <tr><td><b>A股观象台</b></td><td>恐贪指数、年线站上占比、行业MACD强度、偏股基金3年年化</td><td>7子项近750日滚动百分位等权+3日平滑；"神奇择时指标"（偏股基金3年年化跌破0）视角独特。</td><td><a href="https://imsjd.com/" target="_blank">imsjd.com ↗</a></td></tr>
+    <tr><td><b>A股恐贪指数</b>（qjr1997）</td><td>五因子恐贪 + 导数 + 1/3年双窗口分位</td><td>波动率/成交量/期指升贴水/避险需求/股价强度五项等权，z-score标准化。有"导数"看情绪升温还是退潮，可玩性强。</td><td><a href="https://qjr1997.github.io/fear-greed-index/" target="_blank">qjr1997.github.io ↗</a></td></tr>
+    <tr><td><b>MIUMIU恐贪指数</b></td><td>A股恐贪 + 宽基指数逐项恐贪</td><td>动量+多因子+技术面（Jegadeesh动量、Fama-French三因子、Carhart四因子）。部分内容VIP限制。</td><td><a href="https://miumiudashuju.com/about" target="_blank">miumiudashuju.com ↗</a></td></tr>
+    <tr><td><b>蜜蜂工具箱</b></td><td>A股/美股/港股/黄金/加密 五大恐贪</td><td>A股为价格三因子：动量40%+波动率30%+回撤30%，口径最"轻"，适合跨市场情绪对照。</td><td><a href="https://0x0bee.com/zh-TW/tools/fear-greed-index" target="_blank">0x0bee.com ↗</a></td></tr>
+    <tr><td><b>feargreedindex.world</b></td><td>A股/港股/行业板块情绪</td><td>声称整合基本面/技术面/期指期权/新闻/社交/研报数十维。口径披露较少，参考为主。</td><td><a href="https://feargreedindex.world/" target="_blank">feargreedindex.world ↗</a></td></tr>
+    <tr><td><b>悟道情绪罗盘</b></td><td>全市场情绪体温计、连板天梯、四平台热度对账</td><td>短线圈专用：东财(散户)/同花顺(实盘)/雪球(大V)/财联社(异动)四榜交叉对账，识别"圈子情绪割裂"。特色最强。</td><td><a href="https://hot.wudaolu.com" target="_blank">hot.wudaolu.com ↗</a></td></tr>
+    <tr><td><b>雪球</b></td><td>市场温度计、热度榜、持仓变化</td><td>讨论质量较高；标的页看加仓/减仓人数占比，是散户持仓情绪的直接观察。</td><td><a href="https://xueqiu.com" target="_blank">xueqiu.com ↗</a></td></tr>
+  </table>
+  </div>
+  <div class="note">补充渠道：Wind「投资者情绪指数」数据库（机构口径最全，商业付费）；东财APP「情绪宝」/「市场情绪风向标」；支付宝-指数工具-市场情绪；百度指数/微信指数搜"A股/崩盘"看关注热度。以上站点读数均为<strong>非实时、每交易日收盘后更新</strong>，各指标到数时间不同。</div>
+
+  <!-- 开源项目 -->
+  <h2>四、开源项目清单（可直接跑起来）</h2>
+
+  <h3>A. 综合情绪评分系统 —— 最接近"完整产品"</h3>
+  <div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <tr><th>项目</th><th>亮点</th><th>技术栈 / 许可</th></tr>
+    <tr><td><a href="https://github.com/gmz9976/ashare-sentiment" target="_blank">gmz9976/ashare-sentiment ↗</a></td><td><span class="tag t-blue">推荐骨架</span>20+情绪特征，7种状态分类（主升/分歧/修复/退潮/冰点），冰点信号+完整回测（20+绩效指标）+HTML报告。三数据源：westock免token覆盖5000+只 / csv / akshare+tushare。</td><td>Python · MIT</td></tr>
+    <tr><td><a href="https://github.com/xzrd021/baoma-xiaobai-sanhu-zhishu" target="_blank">xzrd021/baoma-xiaobai-sanhu-zhishu ↗</a></td><td><span class="tag t-green">纯本地</span><span class="tag t-amber">口径最透明</span>四渠道普通用户发帖（东财/新浪/同花顺/淘股吧各25%），过滤资讯号/认证作者/投顾/广告/刷屏，输出"宝妈/小白/散户"三角度指数+30板块。免账号Cookie、数据不上传、双击即用。</td><td>Python · 无第三方库</td></tr>
+    <tr><td><a href="https://github.com/hyan1985/MarketMonitoring" target="_blank">hyan1985/MarketMonitoring ↗</a></td><td><span class="tag t-blue">在线看板</span>爬东财股吧/雪球/同花顺，词典法情绪量化(−1~1)；叠加TuShare大盘风险值（结构拥挤+破位风险）。GitHub Actions每工作日自动更新看板。</td><td>Python + GitHub Pages</td></tr>
+    <tr><td><a href="https://github.com/simonlin1212/vibe-astock" target="_blank">simonlin1212/vibe-astock ↗</a></td><td><span class="tag t-green">全本地</span>akshare取数+Pandas本地算8+短线指标（晋级率/梯队断层/情绪周期），LLM只做"数字翻译成人话"避免AI编数。涨停池/连板梯队/龙虎榜/板块资金五流合一。</td><td>akshare + React + FastAPI</td></tr>
+    <tr><td><a href="https://github.com/Maxwell109/quantdash-ai-stock" target="_blank">Maxwell109/quantdash-ai-stock ↗</a></td><td>看盘复盘一体化：情绪周期/涨停结构/修复率/龙头状态/连板天梯/板块轮动，AI复盘+本地MCP Server+飞书机器人。<span class="warn">许可禁商用。</span></td><td>Vite + React · PolyForm Noncommercial</td></tr>
+  </table>
+  </div>
+
+  <h3>B. 文本情绪 / NLP 类（股吧、研报语料）</h3>
+  <div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <tr><th>项目</th><th>方法 / 适用</th></tr>
+    <tr><td><a href="https://github.com/rglesse/Market-Sentiment-Index" target="_blank">rglesse/Market-Sentiment-Index ↗</a></td><td><span class="tag t-amber">学术最正</span>Baker-Wurgler(2007)方法在中国市场适配：7个情绪代理指标PCA→剔除宏观变量→残差再PCA，含静态/动态版本与回测。想"自己算一个严肃情绪指数"首选。</td></tr>
+    <tr><td><a href="https://github.com/q1w2e3r4-1/SZ-sentiment-analysis" target="_blank">q1w2e3r4-1/SZ-sentiment-analysis ↗</a></td><td>上证指数吧评论爬取→HuggingFace BERT情感分析(−1~1)→BI指数合成并与大盘对照，三部分齐全、可复现。</td></tr>
+    <tr><td><a href="https://github.com/jingmouren/Bayesian-Stock-Market-Sentiment" target="_blank">jingmouren/Bayesian-Stock-Market-Sentiment ↗</a></td><td>东财股吧→jieba分词→朴素贝叶斯→MySQL+Django+ECharts。入门友好、代码清晰（本科毕设级）。</td></tr>
+    <tr><td><a href="https://github.com/Scorpio-yyz/StockSensation" target="_blank">Scorpio-yyz/StockSensation ↗</a></td><td>Django+Bootstrap+ECharts，情感字典+朴素贝叶斯双路舆情预测。</td></tr>
+    <tr><td><a href="https://github.com/yuanjianzhang0/FMS-StockPredictor" target="_blank">yuanjianzhang0/FMS-StockPredictor ↗</a></td><td>用DeepSeek-V3把财经新闻转成量化情绪特征再喂预测模型；端到端pipeline、模块化可换模型。缺点：爬虫依赖新闻站HTML结构，易失效。</td></tr>
+  </table>
+  </div>
+
+  <h3>C. 数据基座（上面这些都靠它取数）</h3>
+  <div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <tr><th>项目</th><th>情绪相关能力 / 备注</th></tr>
+    <tr><td><a href="https://github.com/akfamily/akshare" target="_blank">akfamily/AKShare ↗</a></td><td><span class="tag t-green">首选</span>涨停池系列（stock_zt_pool_em / 炸板池 / 跌停池，含封板资金/首封时间/炸板次数/连板数）、龙虎榜、资金流、北向；<b>index_fear_greed_funddb</b> 可直接取韭圈儿恐贪历史；stock_average_position_legu 取平均持仓。局限：历史涨停只取近期，建议加 --delay 1.0。</td></tr>
+    <tr><td><b>TuShare</b></td><td>daily / margin / limit_list_d 等接口，需积分（建议5000+）。</td></tr>
+    <tr><td><a href="https://github.com/1nchaos/adata" target="_blank">1nchaos/adata ↗</a></td><td>免费A股量化数据库，多源融合自动切换保高可用。</td></tr>
+  </table>
+  </div>
+
+  <!-- 组合建议 -->
+  <h2>五、按你的需求直接抄作业</h2>
+  <div class="card">
+    <ul class="rec">
+      <li><b>只想每天花5分钟看一眼：</b>同花顺情绪面板（涨停/炸板/连板）＋ 百分位或大波浪恐贪指数 ＋ 两融余额。三个数字足够。</li>
+      <li><b>做短线/打板复盘：</b>AKShare涨停池系列（晋级率/接力率/炸板率/昨日涨停溢价）＋ 悟道情绪罗盘四平台热度对账 ＋ quantdash-ai-stock。</li>
+      <li><b>做中长线仓位管理：</b>韭圈儿恐贪（可用 <code>index_fear_greed_funddb</code> 编程获取）＋ 股债利差 ＋ 破净率 ＋ 偏股基金3年滚动年化。</li>
+      <li><b>想自己搭一套（契合本地优先/数据不外传）：</b>以 <b>ashare-sentiment</b> 为骨架（已有状态分类+回测），AKShare补数据；文本维度抄 <b>baoma-xiaobai-sanhu-zhishu</b> 的过滤口径（它把"如何剔除机器人/投顾/刷屏"写得最细，这是股吧情绪因子成败关键）；要学术严谨就套 <b>Market-Sentiment-Index</b> 的PCA残差法。<span class="tag t-green">这三个都能纯本地跑</span></li>
+    </ul>
+  </div>
+
+  <div class="card" style="border-color:#f0d9bd;background:#fffaf3">
+    <h3 style="margin-top:0">两个容易被忽视的关键判断</h3>
+    <p style="font-size:13.5px">① <b>被反向收割的真实风险：</b>你在股吧写的"已满仓""准备割肉"本身就是量化模型的训练语料，散户集体行为会被识别并反向利用——这些工具只用于观察市场。</p>
+    <p style="font-size:13.5px;margin-top:8px">② <b>短线情绪≠中长线情绪：</b>"涨停多但炸板率同时飙升"是典型退潮前兆；两融/期权IV/股债利差才反映中长线风险偏好。先分清你要看哪一种，再选工具。</p>
+  </div>
+
+  <!-- 免责声明 -->
+  <div class="disc">
+    <strong>免责声明</strong>：以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+  </div>
+
+  <div class="src">数据来源：domain_search 多源检索（各情绪站点官网、GitHub 项目主页、AKShare/TuShare 文档），检索于 2026-11-16。第三方读数与项目 star 数为检索时点快照，非实时，可能随项目更新变化；GitHub 项目请以仓库最新 README 为准。</div>
+
+</div>
+
+<script>
+var chart = echarts.init(document.getElementById('diverge'));
+chart.setOption({
+  title: { text: '相近数据日 · 四家站点恐贪读数（0=极度恐慌，100=极度贪婪）', left: 'center', textStyle: { fontSize: 13, color: '#5b6472' } },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}: {c}' },
+  grid: { left: 110, right: 40, top: 46, bottom: 30 },
+  xAxis: { type: 'value', min: 0, max: 100, splitLine: { lineStyle: { color: '#eef0f3' } } },
+  yAxis: {
+    type: 'category',
+    data: ['百分位 (10.42)', '大波浪 (20.6)', '希氏 (35)', 'qjr1997 (45.1)'],
+    axisLabel: { fontSize: 12, color: '#1f2329' }
+  },
+  series: [{
+    name: '恐贪读数',
+    type: 'bar',
+    barWidth: '52%',
+    label: { show: true, position: 'right', fontSize: 12, color: '#1f2329' },
+    data: [
+      { value: 10.42, itemStyle: { color: '#1f9c55' } },
+      { value: 20.6,  itemStyle: { color: '#4bab72' } },
+      { value: 35,    itemStyle: { color: '#c8a13a' } },
+      { value: 45.1,  itemStyle: { color: '#d8a03a' } }
+    ],
+    markLine: {
+      symbol: 'none',
+      lineStyle: { color: '#9aa3b2', type: 'dashed', width: 1 },
+      label: { formatter: '中性 50', color: '#6b7480', fontSize: 11 },
+      data: [{ xAxis: 50 }]
+    }
+  }]
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

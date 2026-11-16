@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股情绪观测 · 双方案交叉优化版（效果优先）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#fff; --ink:#1e242e; --sub:#5d6675; --line:#e2e7ee;
+    --red:#d63b30; --green:#1f9e5a; --amber:#c98218; --blue:#2f6fbf; --soft:#f1f5fa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.68;padding:30px 16px 60px;}
+  .wrap{max-width:1100px;margin:0 auto;}
+  h1{font-size:27px;margin-bottom:5px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:20px;}
+  h2{font-size:19px;margin:32px 0 13px;padding-left:11px;border-left:4px solid var(--blue);}
+  h3{font-size:15.5px;margin:16px 0 9px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 20px;margin-bottom:15px;box-shadow:0 1px 3px rgba(20,30,50,.04);}
+  .tldr{background:linear-gradient(135deg,#fff,#f3f8ff);border-color:#d6e3f5;}
+  .tldr ol{margin-left:18px;} .tldr li{padding:5px 0;}
+  b,.em{color:var(--blue);} .warn{color:var(--red);font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);color:#2b3240;white-space:nowrap;}
+  tr:nth-child(even) td{background:#fbfcfe;}
+  a{color:var(--blue);text-decoration:none;border-bottom:1px dotted #a3bcdf;} a:hover{border-bottom-style:solid;}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;white-space:nowrap;}
+  .t-ok{background:#e7f6ed;color:var(--green);} .t-no{background:#fdeceb;color:var(--red);}
+  .t-new{background:#eaf2fc;color:var(--blue);} .t-warn{background:#fdf3e2;color:var(--amber);}
+  .t-gray{background:#eef0f3;color:#6b7480;}
+  .note{font-size:12px;color:var(--sub);margin-top:8px;}
+  .four{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;}
+  .fbox{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff;}
+  .fbox h4{font-size:14px;margin-bottom:6px;}
+  .fbox p{font-size:12.5px;color:var(--sub);}
+  .fbox .who{font-size:11px;color:#8a93a0;margin-top:6px;}
+  /* 温度带 */
+  .band{display:flex;height:40px;border-radius:8px;overflow:hidden;margin:14px 0 6px;font-size:11.5px;color:#fff;}
+  .band div{display:flex;align-items:center;justify-content:center;flex-direction:column;font-weight:600;}
+  .b1{background:#1f8f52;flex:10;} .b2{background:#7bb95a;flex:20;}
+  .b3{background:#c9b23c;flex:40;} .b4{background:#e2912a;flex:20;} .b5{background:#d63b30;flex:10;}
+  .band-lbl{display:flex;font-size:11px;color:var(--sub);}
+  .band-lbl div{text-align:center;} .band-lbl .l1{flex:10;} .band-lbl .l2{flex:20;}
+  .band-lbl .l3{flex:40;} .band-lbl .l4{flex:20;} .band-lbl .l5{flex:10;}
+  .pin{position:relative;height:26px;margin-top:4px;}
+  .pin span{position:absolute;left:14%;top:0;font-size:11.5px;color:var(--green);font-weight:700;white-space:nowrap;}
+  .chartbox{height:330px;width:100%;}
+  .disc{margin-top:28px;background:#fff8f1;border:1px solid #f0d8bb;border-radius:9px;padding:13px 18px;font-size:12.5px;color:#6c5330;}
+  .src{font-size:11.5px;color:#8a94a1;margin-top:6px;}
+  ul.clean{list-style:none;} ul.clean li{padding:5px 0 5px 22px;position:relative;font-size:13.5px;}
+  ul.clean li:before{content:"▸";color:var(--blue);position:absolute;left:4px;}
+  .kicker{font-size:12px;color:#fff;padding:2px 9px;border-radius:9px;background:var(--blue);}
+  @media(max-width:760px){.four{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>A股情绪观测 · 双方案交叉优化版</h1>
+  <div class="meta">目标：<b>股票交易参考 / 效果优先</b>（不采纳本地优先约束） · 整合此前方案与 DeepSeek 方案 · 核实时间 2026-11-16</div>
+
+  <!-- TLDR -->
+  <div class="card tldr">
+    <h3 style="margin-top:0">优化后结论</h3>
+    <ol>
+      <li><b>效果优先就把"机构级定量情绪指数"当主轴</b>，而不是自己爬股吧跑 NLP。最该用的是 <b>华泰 A 股情绪温度计</b>（三维七指标、五档阈值、2020 年以来回测），它是 DeepSeek 给、而我上一版漏掉的关键项——已核实为真实研报。</li>
+      <li><b>两份方案的开源项目都有水分，已剔除：</b>我上一版的 <span class="warn">hyan1985/MarketMonitoring = 404 失效</span>；DeepSeek 的 <span class="warn">redfox-community/stock-feed = 404 不存在</span>，<span class="warn">marketmood 已改名 stockproof</span>。</li>
+      <li><b>被双方低估的最强项目：</b><b>simonlin1212/vibe-astock</b>（1051 star，2026-11-12 仍在更新）——纯本地、AKShare 取数、连板天梯/情绪周期/AI 复盘一体化，是实测活跃度和完成度最高的一个。</li>
+      <li><b>DeepSeek 的"同花顺情绪指数 750 附近"数字对、框架错：</b>750 是 883404 的点位（2026-11-16 盘中 726、昨收 752.84），但它是<b>近 5 日涨跌停投机股的价格指数</b>，绝对点位没有"情绪温度"含义，不能当中长线全市场情绪的起点。</li>
+      <li><b>核心纪律：</b>跨站不可比、同站看历史分位；短线情绪（涨停/炸板）与中长线情绪（两融/ETF/IV）分开用；文本情绪要看分歧度与热度，不能只看正负比。</li>
+    </ol>
+  </div>
+
+  <!-- 核查 -->
+  <h2>一、事实核查：两份方案的项目真伪（本次核心增量）</h2>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table>
+      <tr><th>项目</th><th>来源</th><th>核实结果（GitHub API，2026-11-16）</th><th>处置</th></tr>
+      <tr><td>simonlin1212/vibe-astock</td><td>我方</td><td><span class="tag t-ok">存在</span> 1051 star · 更新至 2026-11-12 · 短线复盘工作台</td><td><b>升为主推</b></td></tr>
+      <tr><td>xzrd021/baoma-xiaobai-sanhu-zhishu</td><td>我方</td><td><span class="tag t-ok">存在</span> 14 star · 2026-08 · 四渠道散户指数、过滤口径细</td><td>保留</td></tr>
+      <tr><td>gmz9976/ashare-sentiment</td><td>我方</td><td><span class="tag t-ok">存在</span> 5 star · 2026-04 · 20+特征+状态分类+回测</td><td>保留（自建骨架）</td></tr>
+      <tr><td>rglesse/Market-Sentiment-Index</td><td>我方</td><td><span class="tag t-warn">存在但老旧</span> 1 star · 2019-04 · 北大课程项目，Baker-Wurgler PCA</td><td>仅作方法参考</td></tr>
+      <tr><td>hyan1985/MarketMonitoring</td><td>我方</td><td><span class="tag t-no">404 失效</span></td><td><b>剔除</b></td></tr>
+      <tr><td>oceanfury/retail-sentiment-analysis</td><td>DeepSeek</td><td><span class="tag t-ok">存在</span> 0 star · 2026-10 · 股吧+雪球情绪，功能描述属实</td><td>留作参考</td></tr>
+      <tr><td>quantskills/skill-student-index</td><td>DeepSeek</td><td><span class="tag t-ok">存在</span> 0 star · 2026-11-14 · 擦鞋童/大学生反向指标</td><td>留作反向指标</td></tr>
+      <tr><td>jiyideweidao/stock-radar</td><td>DeepSeek</td><td><span class="tag t-ok">存在</span> 1 star · 2026-10 · 舆情+行情看板</td><td>留作参考</td></tr>
+      <tr><td>taoqizhang55-code/marketmood</td><td>DeepSeek</td><td><span class="tag t-warn">301 改名</span> 现为 taoqizhang55-code/stockproof · 1 star · 2026-11 · LLM读新闻财报附引用+回测</td><td>更名保留</td></tr>
+      <tr><td>redfox-community/stock-feed</td><td>DeepSeek</td><td><span class="tag t-no">404 不存在</span></td><td><b>剔除</b></td></tr>
+      <tr><td>华泰 A 股情绪温度计</td><td>DeepSeek</td><td><span class="tag t-ok">研报属实</span>《A股情绪温度计：定量刻画与实战策略》2026-03-16，三维七指标</td><td><b>升为主轴</b></td></tr>
+      <tr><td>同花顺 883404「750附近」</td><td>DeepSeek</td><td><span class="tag t-warn">数字对/解读偏</span> 2026-11-16 盘中 726.07、昨收 752.84；属短线题材股价格指数</td><td>仅作短线用</td></tr>
+    </table>
+  </div>
+  <div class="note">star 与更新时间为 GitHub API 实测快照，0–1 star 的项目处于早期、随时可能停止维护，仅作思路参考，不建议直接接入实盘。华泰研报来自慧博/新浪财经/同花顺转载，<b>非一手来源，具体权重与当日精确读数需向华泰索取原文核实</b>。</div>
+
+  <!-- 活跃度图 -->
+  <h2>二、开源项目活跃度实测（star 数）</h2>
+  <div class="card"><div id="stars" class="chartbox"></div>
+    <div class="note">数据：GitHub API，2026-11-16。可见这个领域成熟项目稀缺——绝大多数情绪类开源项目是个位数 star，选型时务必先看活跃度再看功能描述。</div>
+  </div>
+
+  <!-- 融合框架 -->
+  <h2>三、融合框架：四维信号 × 双周期</h2>
+  <div class="card">
+    <p style="font-size:13px;margin-bottom:10px">吸收 DeepSeek 的四维分类（比"四层渠道"更贴合交易场景），再叠加"中长线 / 短线"两个使用周期——<b>同一指标在不同周期的用法完全不同</b>。</p>
+    <div class="four">
+      <div class="fbox"><h4>① 文本舆情 ——「他们怎么说」</h4><p>股吧/雪球/微博/小红书发帖，词典或大模型判正负面。<b>关键看分歧度+热度</b>：一致性极度乐观比分歧中的乐观更危险；热度骤升+情绪极端才是有意义的信号。</p><div class="who">来源：双方共识 · DeepSeek 的分歧度洞见被采纳</div></div>
+      <div class="fbox"><h4>② 行为与资金 ——「他们怎么做」</h4><p>行业 ETF 净申购/赎回（散户直接资金信号）、融资净买入（杠杆风险偏好）、龙虎榜、新增开户。<b>A股散户占比高，这类本土资金行为权重要高于衍生品。</b></p><div class="who">来源：华泰研报佐证 · 效果最硬的一维</div></div>
+      <div class="fbox"><h4>③ 量化与技术 ——「市场定价的情绪」</h4><p>MACD、乖离率 BIAS（华泰采用）、涨跌家数、涨跌停数、成交额、RSI。刻画情绪动能与超买超卖，短中线皆可用。</p><div class="who">来源：双方共识</div></div>
+      <div class="fbox"><h4>④ 衍生品与波动率 ——「机构的预期」</h4><p>沪深300持仓 PCR、300ETF 隐含波动率（中国波指）。<b>只作校准参照、降低权重</b>：A股偏单边做多，过多衍生品指标会引入噪音（华泰明确只用 2 个）。</p><div class="who">来源：DeepSeek 观点 + 华泰研报双重确认</div></div>
+    </div>
+  </div>
+
+  <!-- 主轴：华泰 -->
+  <h2>四、效果优先主轴：华泰情绪温度计（已核实）</h2>
+  <div class="card">
+    <h3>三维七指标</h3>
+    <table>
+      <tr><th>维度</th><th>指标</th><th>代理含义</th></tr>
+      <tr><td rowspan="3"><b>资金</b></td><td>融资净买入</td><td>杠杆型交易资金意愿</td></tr>
+      <tr><td>行业 ETF 净申购</td><td>散户资金行为（本土重点）</td></tr>
+      <tr><td>中国 5 年期 CDS 利差</td><td>外资风险偏好</td></tr>
+      <tr><td rowspan="2"><b>投资者预期</b></td><td>沪深300 持仓 PCR</td><td>机构多空仓位结构</td></tr>
+      <tr><td>300ETF 隐含波动率</td><td>机构恐慌/乐观定价</td></tr>
+      <tr><td rowspan="2"><b>市场动能</b></td><td>MACD</td><td>趋势加速度</td></tr>
+      <tr><td>乖离率 BIAS</td><td>超买超卖</td></tr>
+    </table>
+    <h3>五档温度带 + 当前位置</h3>
+    <div class="band">
+      <div class="b1">恐慌 ≤10%<br>买入信号</div>
+      <div class="b2">悲观 10–30%<br>逐步布局</div>
+      <div class="b3">中性 30–70%<br>维持 50% 仓位</div>
+      <div class="b4">乐观 70–90%<br>增持/减仓</div>
+      <div class="b5">贪婪 ≥90%<br>分批卖出</div>
+    </div>
+    <div class="band-lbl"><div class="l1">0</div><div class="l2">10</div><div class="l3">30</div><div class="l4">70</div><div class="l5">100%</div></div>
+    <div class="pin"><span>▲ 当前：10-22 跌破恐慌线，11-3 低点回升触发右侧信号（华泰 2026-11-15《底部仍待夯实》）</span></div>
+    <h3>回测表现（2020 年以来，研报口径）</h3>
+    <table>
+      <tr><th>策略</th><th>区间收益</th><th>年化</th><th>Sharpe</th><th>最大回撤</th></tr>
+      <tr><td>反转（恐慌买/贪婪空/其余50%仓）</td><td>97.1%</td><td>11.6%</td><td>1.02</td><td>15.0%</td></tr>
+      <tr><td>多空</td><td>153.0%</td><td>16.2%</td><td>1.12</td><td>13.6%</td></tr>
+      <tr><td><b>非对称（推荐：跌破10%不买，回升过10%再买；过90%分批卖）</b></td><td>92.8%</td><td>11.2%</td><td><b>1.07–1.09</b></td><td>14.9%</td></tr>
+    </table>
+    <div class="note">解读：非对称策略用一点收益换更好的持有体验，专门解决"10%的情绪底未必是阶段底、90%的情绪顶未必是阶段顶"。<b>回测收益不代表未来</b>，且华泰自陈两大风险：投资者结构变化会移动情绪中枢；指标被广泛采用后自身会成为情绪的一部分而失效。研报分项权重与当日精确读数未公开，需核实原文。</div>
+  </div>
+
+  <!-- 实操 -->
+  <h2>五、按周期抄作业（效果优先组合）</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>中长线择时（周–月）：</b>华泰情绪温度计为主锚（五档仓位映射）＋ 韭圈儿恐贪指数（AKShare 的 <code>index_fear_greed_funddb</code> 可直接取历史）＋ 破净率/股债收益差。每天收盘后更新一次即可。</li>
+      <li><b>短线打板/接力（日频）：</b>同花顺 883404 看阴阳线与历史分位（<b>不看绝对点位</b>）＋ 悟道情绪罗盘四平台热度对账 ＋ vibe-astock 的连板天梯/炸板率/晋级率。</li>
+      <li><b>文本领先信号（辅助）：</b>股吧/雪球舆情，重点是<b>分歧度和热度突变</b>，并用大模型做反讽识别；擦鞋童/大学生指数（skill-student-index）当过热反向指标。作为辅助，不作为独立买卖依据。</li>
+      <li><b>自建量化系统：</b>以 ashare-sentiment 为骨架（20+特征、状态分类、回测），AKShare 补数据；文本过滤口径抄 baoma-xiaobai-sanhu-zhishu；情绪指数算法抄 Market-Sentiment-Index 的 Baker-Wurgler PCA 残差法。<b>务必做样本外回测与分周期验证</b>。</li>
+    </ul>
+  </div>
+
+  <div class="card" style="border-color:#f0d8bb;background:#fffaf3">
+    <h3 style="margin-top:0">风控与合规</h3>
+    <p style="font-size:13px">① 任何情绪指标都是<b>行为代理</b>，不是心理测量，极端读数只说明历史位置、不预测涨跌；② 爬取股吧/雪球控制频率、遵守 robots，你在社区的行为本身也可能是别人的训练语料；③ 多源交叉验证，单一站点读数不作为交易触发；④ 情绪指标应作为仓位与风险的调节项，而非独立买卖信号。</p>
+  </div>
+
+  <div class="disc">
+    <strong>免责声明</strong>：以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+  </div>
+
+  <div class="src">数据来源：GitHub API 实测（star/更新时间/存在性，2026-11-16）；华泰研报经 domain_search 多源检索（慧博投研、新浪财经、同花顺转载，2026-03-16 及 2026-11-15）；同花顺 883404 行情来自同花顺行情中心（2026-11-16 盘中）；第三方站点口径见此前报告。研报与媒体数据为非一手来源，需核实原文；GitHub 项目状态随时变化，请以仓库最新信息为准。</div>
+
+</div>
+
+<script>
+var c = echarts.init(document.getElementById('stars'));
+var names = ['vibe-astock','baoma散户指数','ashare-sentiment','stock-radar','stockproof','retail-sentiment','skill-student'];
+var vals  = [1051, 14, 5, 1, 1, 0, 0];
+c.setOption({
+  title: { text: '情绪类开源项目 star 对比（GitHub API 实测 2026-11-16）', left: 'center', textStyle: { fontSize: 13, color: '#5d6675' } },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: 130, right: 45, top: 42, bottom: 24 },
+  xAxis: { type: 'value', splitLine: { lineStyle: { color: '#eef0f3' } } },
+  yAxis: { type: 'category', data: names.slice().reverse(), axisLabel: { fontSize: 11.5, color: '#1e242e' } },
+  series: [{
+    name: 'star',
+    type: 'bar',
+    barWidth: '55%',
+    label: { show: true, position: 'right', fontSize: 11, color: '#1e242e' },
+    data: vals.slice().reverse().map(function(v){
+      return { value: v, itemStyle: { color: v >= 100 ? '#2f6fbf' : (v >= 5 ? '#7fa9d8' : '#b9c6d6') } };
+    })
+  }]
+});
+window.addEventListener('resize', function(){ c.resize(); });
+</script>
+</body>
+</html>

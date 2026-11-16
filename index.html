@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股情绪观测 · 最终交付版（收斂定稿）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#fff; --ink:#1e242e; --sub:#5d6675; --line:#e2e7ee;
+    --red:#d63b30; --green:#1f9e5a; --amber:#c98218; --blue:#2f6fbf; --soft:#f1f5fa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.68;padding:30px 16px 60px;}
+  .wrap{max-width:1120px;margin:0 auto;}
+  h1{font-size:25px;margin-bottom:5px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:18px;}
+  .final-badge{display:inline-block;background:var(--green);color:#fff;font-size:12px;padding:3px 12px;border-radius:12px;margin-bottom:12px;}
+  h2{font-size:19px;margin:32px 0 13px;padding-left:11px;border-left:4px solid var(--blue);}
+  h3{font-size:15.5px;margin:16px 0 9px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 20px;margin-bottom:15px;box-shadow:0 1px 3px rgba(20,30,50,.04);}
+  .tldr{background:linear-gradient(135deg,#fff,#f3f8ff);border-color:#d6e3f5;}
+  b,.em{color:var(--blue);} .warn{color:var(--red);font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);color:#2b3240;white-space:nowrap;}
+  tr:nth-child(even) td{background:#fbfcfe;}
+  a{color:var(--blue);text-decoration:none;border-bottom:1px dotted #a3bcdf;}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;white-space:nowrap;}
+  .t-ok{background:#e7f6ed;color:var(--green);} .t-no{background:#fdeceb;color:var(--red);}
+  .t-new{background:#eaf2fc;color:var(--blue);} .t-warn{background:#fdf3e2;color:var(--amber);}
+  .note{font-size:12px;color:var(--sub);margin-top:8px;}
+  .chartbox{height:300px;width:100%;}
+  .disc{margin-top:28px;background:#fff8f1;border:1px solid #f0d8bb;border-radius:9px;padding:13px 18px;font-size:12.5px;color:#6c5330;}
+  .src{font-size:11.5px;color:#8a94a1;margin-top:6px;}
+  .flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin:12px 0;}
+  .step{flex:1;min-width:185px;border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff;position:relative;}
+  .step .num{position:absolute;top:10px;right:12px;font-size:20px;font-weight:800;color:#dfe6ef;}
+  .step h4{font-size:14px;margin-bottom:6px;color:var(--blue);}
+  .step p{font-size:12.5px;color:var(--sub);}
+  .arrow{align-self:center;color:#9fb0c6;font-size:20px;}
+  ul.clean{list-style:none;} ul.clean li{padding:5px 0 5px 22px;position:relative;font-size:13.5px;}
+  ul.clean li:before{content:"▸";color:var(--blue);position:absolute;left:4px;}
+  code{background:#f0f3f8;padding:1px 5px;border-radius:4px;font-size:12px;}
+  .quick td:first-child{font-weight:600;color:#2b3240;white-space:nowrap;}
+  .three{background:#f4f9f4;border:1px solid #cfe6d2;border-radius:9px;padding:12px 18px;margin:10px 0;font-size:13.5px;line-height:2;}
+  .three .k{color:var(--green);font-weight:700;}
+  .win{background:#fff8ec;border-left:3px solid var(--amber);padding:9px 13px;font-size:12.5px;margin-bottom:12px;border-radius:0 6px 6px 0;}
+  @media(max-width:760px){.step{min-width:100%;}.arrow{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="final-badge">唯一最终交付（2026-11-16）· 前八版已归入 archive/，为迭代过程稿、数据与结论可能已被本版修正，请勿引用</span>
+  <h1>A股情绪观测：渠道 · 网站 · 开源项目 · 可操作闭环</h1>
+  <div class="meta">效果优先 · 覆盖用户原始三问 · 八轮交叉复核（我方 × DeepSeek × 一手数据裁决）· 2026-11-16</div>
+
+  <div class="card tldr">
+    <h3 style="margin-top:0">三行极简版（10 秒读懂）</h3>
+    <div class="three">
+      <div><span class="k">看方向：</span>华泰温度计是否从恐慌区回升（周度跟踪华泰策略周报，入口见渠道速查表第一行）。</div>
+      <div><span class="k">看结构：</span>vibe-astock 连板高度/炸板率是否配合（日度看板）。</div>
+      <div><span class="k">看人心：</span>oceanfury 分歧度是否下降（文本层，置信度最低）；student-index 仅作补充反向观察，<b>不进决策表</b>。</div>
+      <div><span class="k">防自欺：</span>任何组合信号先过 stockproof 的 point-in-time 检验（看 Spearman IC + 样本外稳定性，详见第二节淘汰标准）。</div>
+    </div>
+    <h3>本轮（第八轮）引用精度加固</h3>
+    <ul class="clean">
+      <li><b>Sharpe 归属核实清楚，不再笼统"存疑"：</b>研报客转载表格明确给出三档对照——反转 <b>1.02</b>、多空 <b>1.12</b>、非对称 <b>1.09</b>；<b>1.07 是报告摘要段口径</b>（被网易/新浪/慧博等十余家转载），1.09 是正文非对称策略详述口径，属同一报告内摘要-正文数字不一致。严谨引用写"非对称策略 Sharpe 1.07–1.09（摘要/正文口径不一）、反转约 1.02、多空约 1.12"。</li>
+      <li><b>申万 IC 标准补 5 日平滑条件：</b>申万原文"经 5 日平滑后三个期限分组收益均呈严格单调"，并建议结合周频调仓。故淘汰标准改为"IC 不显著先按 5 日平滑+周频口径重跑，仍不显著再放弃"。</li>
+      <li><b>bagholder50 补实证锚 + 统一全称：</b>全称"冷西西韭菜50指数（Bagholder 50）"。其作者雪球原文实证：指数 1000 点→约 0.35 点（10 年 0.00035 倍）；照成分股每日等权做多年化约 -68.87%、五桶错开约 -49.48%——<b>这是模拟组合回测，不是指数点位本身</b>；做空 17/39 倍是作者明言"没法做空、只当乐子"的不可实现数字。</li>
+      <li><b>QVIX 标明数据源域名：</b>渠道表写明"期权论坛（optbbs.com）"，与"非官方复算"声明闭环。</li>
+    </ul>
+  </div>
+
+  <!-- 渠道速查 -->
+  <h2>一、渠道速查表（入口经本轮实测/核实）</h2>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="quick">
+      <tr><th>维度</th><th>渠道</th><th>入口 / 核实状态</th></tr>
+      <tr><td>中长线温度阈值</td><td>华泰情绪温度计</td><td>搜"华泰 A股情绪温度计"（新浪财经/慧博/研报客转载全文）；周度跟踪华泰策略周报</td></tr>
+      <tr><td>恐贪辅助共振</td><td>韭圈儿恐贪指数</td><td>韭圈儿 APP / 微信小程序搜"恐贪指数"；程序化：<code>AKShare index_fear_greed_funddb</code></td></tr>
+      <tr><td>恐贪辅助共振</td><td>大波浪 / 百分位</td><td><a href="https://www.yyqyx.com/indicators" target="_blank">yyqyx.com/indicators ↗</a>（本轮实测 200）、<a href="https://baifenwei.com/indicator/fear-greed/" target="_blank">baifenwei.com ↗</a>（实测 200）</td></tr>
+      <tr><td>短线投机热度</td><td>同花顺情绪指数</td><td>同花顺软件/APP 直接输入代码 <b>883404</b>（短线圈，只看阴阳线与分位）</td></tr>
+      <tr><td>短线投机热度</td><td>悟道情绪罗盘</td><td><span class="tag t-warn">链接未验证</span> 产品名"悟道情绪罗盘"，请自行搜索确认当前入口；原 URL <code>hot.wudaolu.com</code> 本轮实测连接失败，故不写死</td></tr>
+      <tr><td>散户文本情绪</td><td>人气榜 / 热股榜</td><td>东方财富 APP → 股吧 → 人气榜；雪球 APP → 热股榜；微博/抖音/小红书搜"A股 大盘"</td></tr>
+      <tr><td>杠杆资金意愿</td><td>两融 / 龙虎榜 / 开户数</td><td>上交所/深交所官网"融资融券"栏目；东方财富 APP 搜"龙虎榜"；中国结算官网月度统计</td></tr>
+      <tr><td>期权隐含波动率</td><td>看清"指数波指 vs 期权隐波"</td><td><b>iVIX（000188）2018-02 起停更、勿用</b>；<b>通达信实操代码</b>：V050Z（上证50ETF期权波指，标的 510050）、TZ001（沪深300波指，口径有歧义、默认取股指期权 IO）、TZ004（中证1000波指，MO）——均为软件商自编指标、非交易所官方代码，请在软件内二次确认；中金所 CVX（基于沪深300股指期权编制，Wind 终端搜"中金所CVX"或"300股指期权波动率"，<b>代码以当前终端为准，不写死 CVX0001</b>）；<b>免费复算入口：期权论坛 QVIX（optbbs.com）</b>（按 CBOE 算法用 50ETF 期权报价复算、<b>非官方</b>发布，AKShare <code>index_option_50etf_qvix</code> 底层即抓取 optbbs CSV、可编程获取）。<span class="warn">000993 是全指信息技术指数，不是波指，切勿用错。</span></td></tr>
+      <tr><td>自己动手</td><td>开源项目</td><td>见第四节，均已给 owner/repo 全名；<b>student-index 仅作反向观察参考，不进入组合判断</b></td></tr>
+    </table>
+  </div>
+
+  <!-- 闭环 -->
+  <h2>二、四层闭环 + 组合信号判断表</h2>
+  <div class="card">
+    <div class="win"><b>方法论约束（务必先读）：</b>组合判断以<b>周度为决策窗口</b>：华泰信号取周报定性；vibe-astock 取该周内连板高度的<b>趋势方向</b>（而非单日值）；oceanfury 取<b>周均分歧度</b>。<b>单日极端值不直接触发组合判断</b>，仅作为周内结构变化的提示。短线信号仅用于确认中长线方向，不单独作为中长线依据，避免"用今天的炸板率确认上周的华泰信号"这类尺度错配。</div>
+    <div class="flow">
+      <div class="step"><span class="num">1</span><h4>华泰阈值 · 判方向</h4><p>10% 恐慌线+回升，判断"是否底部区域"（周度）</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="num">2</span><h4>vibe-astock · 看结构</h4><p>连板高度/炸板率，确认短线赚钱效应（日度）</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="num">3</span><h4>oceanfury · 看人心</h4><p>股吧/雪球分歧度、热度（日频，置信度较低）</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="num">4</span><h4>stockproof · 防自欺</h4><p>point-in-time 检验，先过锁定样本外</p></div>
+    </div>
+    <h3>组合信号判断表（同窗口内；右列为状态描述，非操作指令）</h3>
+    <table>
+      <tr><th>华泰阈值</th><th>vibe-astock 结构</th><th>oceanfury 文本</th><th>情绪状态（非操作建议）</th></tr>
+      <tr><td>恐慌区回升（右侧信号）</td><td>连板高度回升、炸板率下降</td><td>分歧度下降、热度温和</td><td>三层共振修复，信号较强</td></tr>
+      <tr><td>恐慌区回升</td><td>连板高度仍降、炸板率上升</td><td>分歧度上升、文本恶化</td><td>资金/机构先动，散户与短线未跟；修复持续性待确认</td></tr>
+      <tr><td>中性区</td><td>炸板率骤升、晋级率走低</td><td>热度骤升、极端乐观</td><td>短线过热，退潮风险状态</td></tr>
+      <tr><td>贪婪区（≥90%）</td><td>连板高度高位</td><td>热度极高但分歧度骤升</td><td>顶部区域特征，分歧加剧</td></tr>
+    </table>
+    <div class="note">表中只放有一定验证基础的信号。student-index 因有效性未经统计检验，已从决策表移出，见下方"补充反向观察"。所有"状态"是解释框架，不构成任何买卖或仓位建议，动作由读者自行按纪律决定。</div>
+    <h3>信号何时该扔：stockproof 的可操作淘汰标准</h3>
+    <p style="font-size:13px">"过 point-in-time 检验"要落到具体判据：一看<b>信号与未来 5/10/20 日收益的 Spearman IC</b>（排序能力），二看 <b>Walk-Forward 样本外表现是否稳定</b>。若 IC 不显著、或样本外明显衰减，该信号就不该进组合判断。<b>可参照的量化标准</b>：申万金工《基于多维状态交互与双层 Ridge 的结构化情绪指标优化》（2026-10-08，沈思逸/邓虎）——504 交易日滚动训练、126 日指数衰减半衰期、季度 Walk-Forward、20 日标签隔离(purge=20)；其新情绪指标对万得全 A 未来 5/10/20 日收益的 Spearman IC 分别为 <b>0.1541 / 0.1924 / 0.1674</b>（HAC t&gt;2）。这是机构级参照，非本报告独立验证；个人自建做不到这套工程，至少应坚持"留出样本外 + 不反复调参"。申万原文在 IC 检验前做了 <b>5 日平滑</b>并建议结合周频调仓——故实操顺序是"<b>IC 不显著先按 5 日平滑 + 周频口径重跑，仍不显著再放弃</b>"，而非一票否决。stockproof 的近 2 年锁定与变体提高显著性门槛，正是这一纪律的落地工具。</p>
+    <h3>补充反向观察（不进决策表）：人群 + 行为双视角</h3>
+    <p style="font-size:13px"><b>人群维度 — student-index（大学生指数）：</b>基于擦鞋童理论，当学生党讨论涌入某资产（&gt;65）提示局部过热。关键词规则、有效性未经统计检验，<b>置信度最低，仅作观察视角</b>。<br>
+    <b>行为维度 — 冷西西韭菜50指数（Bagholder 50，<a href="https://github.com/toocoldcc/bagholder50" target="_blank">toocoldcc/bagholder50 ↗</a>，32star/MIT）：</b>每日收盘按追涨热度、换手放大、龙虎榜注意力、特大单拥挤度给全市场打分，取 Top50 构建等权理论指数，观测"高拥挤尾部"。其方法论文档明确<b>否证"特大单净流入=聪明钱"</b>（elg_net_20 历史 rank-IC 约 -0.033），定位为<b>"避雷/拥挤度研究工具，不是买入名单、不是实盘净值"</b>。<b>实证锚（作者雪球原文）：指数 2016 年 1000 点→2026 年约 0.35 点（10 年 0.00035 倍）；照成分股每日等权做多年化约 -68.87%、五桶错开约 -49.48%——这是模拟组合回测、非指数点位本身，做空 17/39 倍为作者明言不可实现的"乐子"数字</b>。有公开方法定义与每日更新在线页面，但<b>未经本报告独立回测验证</b>。<br>
+    两者都不进决策表；前者看"谁在讨论"，后者看"钱往哪里拥挤"，作为两个独立反向观察视角。</p>
+  </div>
+
+  <!-- 华泰 -->
+  <h2>三、中长线主锚：华泰情绪温度计</h2>
+  <div class="card">
+    <p style="font-size:13px">研报《A股情绪温度计：定量刻画与实战策略》2026-03-16，新浪财经转载全文已抓取核实。七指标中"中国5年期主权CDS（信用违约互换）"衡量主权信用风险溢价；<b>研报将其归入"资金"维度，若按常规分类 CDS 更偏"风险预期"，此处尊重研报原文分类</b>。其余：融资净买入、行业ETF净申购（资金）；300持仓PCR、300ETF隐波（预期）；MACD、BIAS（动能）。另有"情绪预期/温度/浓度"周报框架，属不同表述层次。</p>
+    <h3>五档阈值（公开原文明确）</h3>
+    <table>
+      <tr><th>恐慌</th><th>悲观</th><th>中性</th><th>乐观</th><th>贪婪</th></tr>
+      <tr><td>0–10%<br>买入信号</td><td>10–30%<br>观望/布局</td><td>30–70%<br>50%仓位</td><td>70–90%<br>增持/减仓</td><td>&gt;90%<br>分批卖出</td></tr>
+    </table>
+    <h3>策略回测与 Sharpe（三档归属已核实，摘要/正文口径差异）</h3>
+    <table>
+      <tr><th>来源</th><th>反转</th><th>多空</th><th>非对称</th></tr>
+      <tr><td>研报客转载表格</td><td>1.02</td><td>1.12</td><td>1.09</td></tr>
+      <tr><td>新浪/网易转载正文</td><td colspan="2">摘要段写"提升至 1.07"（非对称策略，摘要口径）</td><td>详述段写"提升至 1.09"（同一非对称策略，正文口径）</td></tr>
+    </table>
+    <div class="note"><b>归属已核实：</b>研报客转载表格明确三档 Sharpe——反转 1.02、多空 1.12、非对称 1.09；1.07 出自报告摘要段（十余家转载沿用的"摘要口径"），1.09 出自正文非对称策略详述段，属<b>同一报告内摘要与正文数字不一</b>，非两个策略。严谨引用："非对称策略 Sharpe 1.07–1.09（口径不一）、反转约 1.02、多空约 1.12"。收益数字明确：反转 97.1%（超额&gt;40%）、多空 153%（超额近100%）、非对称 92.8%，2020 年以来回测。分项权重与逐日精确读数始终未公开；精确取值仍需核对 PDF 原文。</div>
+    <h3>当前状态与"右侧信号"如何自己跟踪</h3>
+    <ul class="clean">
+      <li>情绪指数 10-22 进入 10% 以下恐慌区间，11-03 低点以来回升，触发右侧信号；华泰 11-15《底部仍待夯实》同时提示科技筹码未出清、宽基 ETF 净流出、底部仍待夯实 → <b>定性：止跌修复，非趋势反转</b>。</li>
+      <li><b>右侧信号=首次上穿（研报原文，非代理）：</b>原文明确"情绪指标初次降低到10%时候不会买入，而在其再次回到10%之上时候再买入"——买入端是<b>从 ≤10% 首次回升至 &gt;10% 的事件判断</b>，不需要额外等待 N 日。卖出端原文亦有精确规则：首次触及 90% 卖 50%，每继续 +1% 或每多停留 1 天卖剩余 5%，触及 98% 无条件清仓。<b>现实替代</b>：若无法拿到华泰逐日读数，可用"华泰周报是否仍表述为恐慌区间"作定性替代。</li>
+    </ul>
+  </div>
+
+  <!-- 开源 -->
+  <h2>四、开源项目：可运行性评估（均未实测运行）</h2>
+  <div class="card">
+    <table>
+      <tr><th>项目（owner/repo 全名）</th><th>用途</th><th>可运行性 / 核实状态</th></tr>
+      <tr><td><a href="https://github.com/simonlin1212/vibe-astock" target="_blank">simonlin1212/vibe-astock ↗</a></td><td>短线看板（主推）</td><td><span class="tag t-ok">1051★/283 fork</span> Apache-2.0，2026-11-12 更新；结构完整、有版本发布、活跃维护。<b>唯一接近"可考虑实盘辅助"标准</b>；仍未实测运行</td></tr>
+      <tr><td><a href="https://github.com/oceanfury/retail-sentiment-analysis" target="_blank">oceanfury/retail-sentiment-analysis ↗</a></td><td>股吧/雪球文本情绪</td><td><span class="tag t-warn">可参考架构</span> README 完整、requirements.txt + test_demo.py + 10余模块；0★、停更 2026-10-01、UV 数据源为代码引用的 apppc.com（滞后约6天）。<b>运行前提（README 原文核实）：需配置雪球 Cookie（绑定浏览器会话、换机器需重取），请求间隔 GUBA_REQUEST_DELAY=1.5s／XUEQIU_REQUEST_DELAY=2.5s</b>——反爬有基本说明，但 Cookie 需自行维护、社区页面结构易失效，<b>文档完整≠开箱即跑，未实测</b>，不宜原样生产</td></tr>
+      <tr><td><a href="https://github.com/quantskills/skill-student-index" target="_blank">quantskills/skill-student-index ↗</a></td><td>擦鞋童反向观察</td><td><span class="tag t-ok">可离线演示（文档层面）</span> urllib 零第三方依赖、无网络回退示例数据、11-14 新建；0★、无测试、关键词规则未经统计检验。<b>演示数据≠真实数据管道；不进决策表</b></td></tr>
+      <tr><td><a href="https://github.com/toocoldcc/bagholder50" target="_blank">toocoldcc/bagholder50 ↗</a></td><td>拥挤度反向观测</td><td><span class="tag t-ok">32star/MIT</span> 冷西西韭菜50指数（Bagholder 50），公开方法论+每日在线指数页；README 否证"特大单=聪明钱"、定位"避雷非买入名单"、rank-IC -0.033；作者实证 1000→0.35 点、做多年化 -68.87%（模拟组合，非点位）；2026-08-12 建立、未实测运行、<b>不进决策表</b></td></tr>
+      <tr><td><a href="https://github.com/taoqizhang55-code/stockproof" target="_blank">taoqizhang55-code/stockproof ↗</a></td><td>可验证性骨架</td><td><span class="tag t-ok">特性经 README 原文核实</span> point-in-time 十年回测、近2年锁定、变体提高显著性门槛；MIT、1★、2026-11-06。未实测运行</td></tr>
+      <tr><td><a href="https://github.com/gmz9976/ashare-sentiment" target="_blank">gmz9976/ashare-sentiment ↗</a> 等</td><td>自建骨架/数据基座</td><td>20+特征+状态分类+回测（5★）；<a href="https://github.com/xzrd021/baoma-xiaobai-sanhu-zhishu" target="_blank">xzrd021/baoma-xiaobai-sanhu-zhishu ↗</a>（过滤口径细，14★）；<a href="https://github.com/akfamily/akshare" target="_blank">akfamily/AKShare ↗</a>、<a href="https://github.com/rglesse/Market-Sentiment-Index" target="_blank">rglesse/Market-Sentiment-Index ↗</a>（PCA残差法，2019）</td></tr>
+    </table>
+    <div class="note"><b>剔除：</b><span class="warn">hyan1985/MarketMonitoring（404）、redfox-community/stock-feed（404）</span>；marketmood 统一指向 stockproof；883404 仅作短线辅助。</div>
+  </div>
+
+  <h2>五、活跃度实测</h2>
+  <div class="card"><div id="stars" class="chartbox"></div>
+    <div class="note">GitHub API 实测 2026-11-16。vibe-astock 是唯一千星级且持续维护的项目。</div>
+  </div>
+
+  <div class="disc">
+    <strong>免责声明</strong>：以上内容基于公开数据和量化分析，仅供参考，<b>不构成投资建议</b>。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。<br>
+    <b>开源项目声明</b>：本报告推荐的开源项目（尤其 0–1 star 项目）<b>未经生产环境验证，也未在本环境实测运行</b>，使用前请自行评估代码质量、数据合规与爬虫合规风险；研报阈值与回测数字为非一手转载，需核对原文。组合信号判断表是解释框架，不是交易信号；表中措辞均为状态描述，非操作指令。
+  </div>
+
+  <div class="src"><b>唯一最终交付：本文件（2026-11-16）；archive/ 内为迭代过程稿，请勿引用。</b><br>数据来源：GitHub API（star/元数据/Contents API 读 README，2026-11-16）；网站入口 HTTP 实测（2026-11-16）；新浪财经华泰研报转载全文（WebFetch）；domain_search（华泰 11-15 周报与研报原文非对称触发、中国波指停更、000993/CVX 核实、通达信 V050Z/TZ001/TZ004 代码、期权论坛 QVIX、申万金工 2026-10-08 研报 IC 参数，含中证指数公司官网、上交所、新浪/网易转载原文、研报客 Sharpe 三档表格、雪球冷西西韭菜50原文实证数字等）；GitHub API（bagholder50 元数据与方法论 README）。研报与媒体数据为非一手来源；<b>网站入口可用性仅反映 2026-11-16 实测状态，域名/产品可能随时变更，读者使用前请以当前访问结果为准</b>；代码与链接状态随时变化，请以官方最新信息为准。</div>
+
+</div>
+
+<script>
+var c = echarts.init(document.getElementById('stars'));
+var names = ['vibe-astock','baoma散户指数','ashare-sentiment','oceanfury文本','skill-student','stock-radar','stockproof'];
+var vals  = [1051, 14, 5, 0, 0, 1, 1];
+c.setOption({
+  title: { text: '情绪类开源项目 star 对比（GitHub API 实测 2026-11-16）', left: 'center', textStyle: { fontSize: 13, color: '#5d6675' } },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: 140, right: 45, top: 42, bottom: 24 },
+  xAxis: { type: 'value', splitLine: { lineStyle: { color: '#eef0f3' } } },
+  yAxis: { type: 'category', data: names.slice().reverse(), axisLabel: { fontSize: 11.5, color: '#1e242e' } },
+  series: [{
+    name: 'star', type: 'bar', barWidth: '55%',
+    label: { show: true, position: 'right', fontSize: 11, color: '#1e242e' },
+    data: vals.slice().reverse().map(function(v){
+      return { value: v, itemStyle: { color: v >= 100 ? '#2f6fbf' : (v >= 5 ? '#7fa9d8' : '#b9c6d6') } };
+    })
+  }]
+});
+window.addEventListener('resize', function(){ c.resize(); });
+</script>
+</body>
+</html>

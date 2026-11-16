@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股情绪观测 · 终版（效果优先 · 双轮复核）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#fff; --ink:#1e242e; --sub:#5d6675; --line:#e2e7ee;
+    --red:#d63b30; --green:#1f9e5a; --amber:#c98218; --blue:#2f6fbf; --soft:#f1f5fa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.68;padding:30px 16px 60px;}
+  .wrap{max-width:1100px;margin:0 auto;}
+  h1{font-size:26px;margin-bottom:5px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:20px;}
+  h2{font-size:19px;margin:32px 0 13px;padding-left:11px;border-left:4px solid var(--blue);}
+  h3{font-size:15.5px;margin:16px 0 9px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 20px;margin-bottom:15px;box-shadow:0 1px 3px rgba(20,30,50,.04);}
+  .tldr{background:linear-gradient(135deg,#fff,#f3f8ff);border-color:#d6e3f5;}
+  .tldr ol{margin-left:18px;} .tldr li{padding:5px 0;}
+  b,.em{color:var(--blue);} .warn{color:var(--red);font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);color:#2b3240;white-space:nowrap;}
+  tr:nth-child(even) td{background:#fbfcfe;}
+  a{color:var(--blue);text-decoration:none;border-bottom:1px dotted #a3bcdf;}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;white-space:nowrap;}
+  .t-ok{background:#e7f6ed;color:var(--green);} .t-no{background:#fdeceb;color:var(--red);}
+  .t-new{background:#eaf2fc;color:var(--blue);} .t-warn{background:#fdf3e2;color:var(--amber);}
+  .note{font-size:12px;color:var(--sub);margin-top:8px;}
+  .chartbox{height:300px;width:100%;}
+  .disc{margin-top:28px;background:#fff8f1;border:1px solid #f0d8bb;border-radius:9px;padding:13px 18px;font-size:12.5px;color:#6c5330;}
+  .src{font-size:11.5px;color:#8a94a1;margin-top:6px;}
+  .flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin:12px 0;}
+  .step{flex:1;min-width:190px;border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff;position:relative;}
+  .step .num{position:absolute;top:10px;right:12px;font-size:20px;font-weight:800;color:#dfe6ef;}
+  .step h4{font-size:14px;margin-bottom:6px;color:var(--blue);}
+  .step p{font-size:12.5px;color:var(--sub);}
+  .arrow{align-self:center;color:#9fb0c6;font-size:20px;}
+  .oneline{background:#eef5ff;border:1px solid #cfe0f7;border-radius:9px;padding:14px 18px;font-size:14px;line-height:1.8;margin:6px 0;}
+  ul.clean{list-style:none;} ul.clean li{padding:5px 0 5px 22px;position:relative;font-size:13.5px;}
+  ul.clean li:before{content:"▸";color:var(--blue);position:absolute;left:4px;}
+  code{background:#f0f3f8;padding:1px 5px;border-radius:4px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>A股情绪观测 · 终版</h1>
+  <div class="meta">目标：<b>股票交易参考 / 效果优先</b> · 我方方案 × DeepSeek 方案 · 经两轮交叉复核与一手核实 · 2026-11-16</div>
+
+  <div class="card tldr">
+    <h3 style="margin-top:0">一句话版本</h3>
+    <div class="oneline">
+      中长线跟踪<b>华泰温度计的阈值事件</b>（10% 恐慌线 + 回升确认），短线用 <b>vibe-astock 看结构而非点位</b>，任何想纳入交易参考的情绪信号先经 <b>stockproof 做 point-in-time 检验</b>。<code>883404</code> 仅作短线投机温度辅助参照，不外推为全市场中长线情绪。
+    </div>
+    <h3>本轮复核的三处修正</h3>
+    <ol>
+      <li><b>star 数不采纳"约970+"：</b>GitHub API 实时实测 <b>1051 star / 283 fork</b>（2026-11-16），DeepSeek 的 973/262 是更早快照——star 只增不减，旧数会低估。报告统一用实测值并标注时点。</li>
+      <li><b>华泰维度两套表述都成立、并列呈现：</b>研报正文为"资金 / 投资者预期 / 市场动能"三维七指标；另有"情绪预期 / 情绪温度 / 情绪浓度"周报框架。Sharpe 与五档阈值来自研报转载，<span class="warn">标注"需核对 PDF 原文"，不当作已核实的公开数据</span>。</li>
+      <li><b>stockproof 定位升级：</b>从"情绪工具"提升为<b>可验证性骨架</b>——十年 point-in-time 回测、每个信号附原文引用、最近 2 年默认锁定需确认才解锁、每多试一个变体就提高显著性门槛。这是"效果优先"与"盲目堆指标"的分界线。</li>
+    </ol>
+  </div>
+
+  <!-- 三层闭环 -->
+  <h2>一、最终方案：三层闭环</h2>
+  <div class="card">
+    <div class="flow">
+      <div class="step"><span class="num">1</span><h4>中长线主锚 · 判方向</h4><p>华泰温度计阈值事件 + 韭圈儿恐贪/破净率共振 → 判断"是否处于底部区域"。</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="num">2</span><h4>短线看板 · 找结构</h4><p>vibe-astock 连板天梯/炸板率/晋级率 → 看赚钱效应与情绪周期，不看绝对点位。</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="num">3</span><h4>可验证骨架 · 防过拟合</h4><p>把上面产生的情绪信号丢进 stockproof lab 做 point-in-time 检验 → 确认是否只是事后拟合。</p></div>
+    </div>
+    <div class="note">三层各司其职：第 1 层决定"该不该有敞口"，第 2 层决定"当下节奏"，第 3 层决定"这个信号值不值得信"。跳过第 3 层，前两层的信号都只是"感觉有用"。</div>
+  </div>
+
+  <!-- 中长线 -->
+  <h2>二、中长线主锚：华泰情绪温度计（阈值事件驱动）</h2>
+  <div class="card">
+    <p style="font-size:13px">已核实为真实研报，2026-03-16《A股情绪温度计：定量刻画与实战策略》（华泰策略，闫萌/孙瀚文/王伟光/何康等）。<b>正确用法不是"拿精确读数"，而是跟踪研报的区间判断与阈值事件。</b></p>
+    <h3>两种维度表述（都有出处，并列保留）</h3>
+    <table>
+      <tr><th>口径</th><th>三维构成</th><th>出处</th></tr>
+      <tr><td>研报正文（温度计）</td><td>资金（融资净买入 / 行业ETF净申购 / 中5年CDS）、投资者预期（300持仓PCR / 300ETF隐波）、市场动能（MACD / BIAS）——三维七指标</td><td>研报转载（慧博/新浪财经/同花顺）</td></tr>
+      <tr><td>周报框架（三维情绪模型）</td><td>情绪预期、情绪温度、情绪浓度（后者用中信三级行业第一主成分方差贡献率衡量一致性）</td><td>华泰三维情绪模型跟踪周报</td></tr>
+    </table>
+    <h3>五档阈值与策略（<span class="warn">来自研报转载，需核对 PDF 原文</span>）</h3>
+    <table>
+      <tr><th>区间</th><th>读数</th><th>含义</th><th>区间</th><th>读数</th><th>含义</th></tr>
+      <tr><td>恐慌</td><td>≤10%</td><td>底部区域/买入信号</td><td>中性</td><td>30–70%</td><td>维持50%仓位</td></tr>
+      <tr><td>悲观</td><td>10–30%</td><td>观望/逐步布局</td><td>乐观</td><td>70–90%</td><td>增持/逐步减仓</td></tr>
+      <tr><td colspan="3"></td><td>贪婪</td><td>≥90%</td><td>分批卖出</td></tr>
+    </table>
+    <div class="note">非对称策略（跌破10%不买、回升过10%再买；过90%分批卖）据转载 Sharpe 1.07–1.09，用于改善持有体验。<b>该数字与精确五档划分在公开摘要中未完整出现，若要据此操作需核对研报 PDF 原文。</b>华泰自陈风险：投资者结构变化会移动中枢；指标被广泛采用后自身成为情绪的一部分而失效。</div>
+    <h3>当前状态（截至 2026-11-16）</h3>
+    <ul class="clean">
+      <li>情绪指数 <b>10-22 进入 10% 以下恐慌区间，11-03 低点以来回升，触发右侧信号</b>。</li>
+      <li>但华泰 11-15《底部仍待夯实》同时提示：科技筹码尚未充分出清、宽基 ETF 净流出、产业与海外流动性逆风仍在。</li>
+      <li><b>定性：信号是"止跌修复"，不是"趋势反转"。</b></li>
+    </ul>
+    <h3>纪律</h3>
+    <p style="font-size:13px">分项权重与每日精确读数未完全公开 → <b>只能跟踪观点与阈值事件，不能声称"拿到实时温度值"</b>。辅助锚：韭圈儿恐贪（<code>index_fear_greed_funddb</code>）+ 破净率/股债收益差，用于确认华泰的"底部区域"是否在多个独立指标上共振。</p>
+  </div>
+
+  <!-- 短线 -->
+  <h2>三、短线看板：vibe-astock（看结构，不看点位）</h2>
+  <div class="card">
+    <table>
+      <tr><th>实测项</th><th>数值（GitHub API，2026-11-16）</th></tr>
+      <tr><td>star / fork</td><td><b>1051 / 283</b>（DeepSeek 引用的 973/262 为更早快照）</td></tr>
+      <tr><td>许可 / 创建</td><td>Apache-2.0 / 2026-07-29</td></tr>
+      <tr><td>最近更新</td><td>2026-11-12（活跃维护中）</td></tr>
+      <tr><td>核心设计</td><td>数据与统计本地计算，AI 只写叙述——不把模型生成的数字混进判断；182 个数据端点</td></tr>
+      <tr><td>覆盖模块</td><td>涨停池、连板天梯、龙虎榜、板块资金流；赚钱效应、晋级率、梯队断层、情绪周期</td></tr>
+    </table>
+    <div class="note">配合纪律：看结构（连板高度、炸板率、晋级率的变化趋势），不看单一模块的绝对输出；它本身声明"不构成投资决策或买卖建议"，当结构化复盘工作台用，不当信号源。</div>
+  </div>
+
+  <!-- 活跃度图 -->
+  <h2>四、开源项目活跃度实测</h2>
+  <div class="card"><div id="stars" class="chartbox"></div>
+    <div class="note">GitHub API 实测 2026-11-16。情绪类开源项目普遍 star 极低，选型先看活跃度再看功能描述。vibe-astock 是唯一千星级且持续维护的项目。</div>
+  </div>
+
+  <!-- 可验证性 -->
+  <h2>五、可验证性骨架：stockproof（防过拟合）</h2>
+  <div class="card">
+    <p style="font-size:13px">README 已核实属实：<code>taoqizhang55-code/marketmood</code> 已改名 <code>stockproof</code>（MIT，2026-11-06 更新，1 star）。它的价值不在"抓情绪"，而在<b>把情绪信号推进到"历史上是否真的有预测力"</b>：</p>
+    <ul class="clean">
+      <li>LLM 读新闻/财报/公告并<b>附原文引用</b>；每个信号在<b>十年 point-in-time 数据</b>上回测，无未来函数（EPS 按首次披露、按真实公告日、消息后入场）。</li>
+      <li><b>最近 2 年默认锁定</b>，需确认一次才解锁；<b>每多试一个变体就提高显著性门槛</b>——直接针对"反复调参挖出假信号"。</li>
+      <li>自带案例：某预测器在 2010–24 有效，但在锁定的 2024-11→2026 失效，应用明确标注"历史上通过、近两年失败"。</li>
+    </ul>
+    <p style="font-size:13px;margin-top:8px"><b>用法：</b>把 vibe-astock 或自建指标产生的情绪信号，写成小 spec 丢进 <code>lab</code> 做 point-in-time 检验，先过锁定样本外再看全样本。<b>这一步是"效果优先"和"盲目堆指标"的分界线。</b></p>
+  </div>
+
+  <!-- 剔除 -->
+  <h2>六、剔除与降级清单</h2>
+  <div class="card">
+    <table>
+      <tr><th>项目</th><th>处置</th><th>原因</th></tr>
+      <tr><td>hyan1985/MarketMonitoring</td><td><span class="tag t-no">剔除</span></td><td>404 失效</td></tr>
+      <tr><td>redfox-community/stock-feed</td><td><span class="tag t-no">剔除</span></td><td>404 不存在</td></tr>
+      <tr><td>taoqizhang55-code/marketmood</td><td><span class="tag t-warn">统一改名</span></td><td>不再单独推荐，统一指向 stockproof，避免 301 跳转困惑</td></tr>
+      <tr><td>883404 同花顺情绪指数</td><td><span class="tag t-warn">降级为辅助</span></td><td>近5日涨跌停股价格指数，仅反映短线博弈，不外推全市场中长线</td></tr>
+    </table>
+  </div>
+
+  <div class="disc">
+    <strong>免责声明</strong>：以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+  </div>
+
+  <div class="src">数据来源：GitHub API 实测（star/fork/许可/更新时间/README，2026-11-16）；华泰研报经 domain_search 多源检索（慧博投研、新浪财经、同花顺转载，2026-03-16 及 2026-11-15，《底部仍待夯实》）；883404 来自同花顺行情中心。研报与媒体数据为非一手来源，具体权重、五档阈值与 Sharpe 需核对 PDF 原文；GitHub 项目状态随时变化，请以仓库最新信息为准。</div>
+
+</div>
+
+<script>
+var c = echarts.init(document.getElementById('stars'));
+var names = ['vibe-astock','baoma散户指数','ashare-sentiment','stock-radar','stockproof','retail-sentiment','skill-student'];
+var vals  = [1051, 14, 5, 1, 1, 0, 0];
+c.setOption({
+  title: { text: '情绪类开源项目 star 对比（GitHub API 实测 2026-11-16）', left: 'center', textStyle: { fontSize: 13, color: '#5d6675' } },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: 130, right: 45, top: 42, bottom: 24 },
+  xAxis: { type: 'value', splitLine: { lineStyle: { color: '#eef0f3' } } },
+  yAxis: { type: 'category', data: names.slice().reverse(), axisLabel: { fontSize: 11.5, color: '#1e242e' } },
+  series: [{
+    name: 'star', type: 'bar', barWidth: '55%',
+    label: { show: true, position: 'right', fontSize: 11, color: '#1e242e' },
+    data: vals.slice().reverse().map(function(v){
+      return { value: v, itemStyle: { color: v >= 100 ? '#2f6fbf' : (v >= 5 ? '#7fa9d8' : '#b9c6d6') } };
+    })
+  }]
+});
+window.addEventListener('resize', function(){ c.resize(); });
+</script>
+</body>
+</html>
